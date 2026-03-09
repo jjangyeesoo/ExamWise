@@ -1,0 +1,36 @@
+# ExamWise Project Context
+
+## Project Overview
+ExamWise is an intelligent, bilingual Question Bank application specifically tailored for PMP (Project Management Professional) exam preparation. It leverages Google Gemini AI to parse, translate, and structure complex exam questions from uploaded images or screenshots.
+
+## Repository Structure
+This project is set up as an npm monorepo directly containing two main workspaces:
+- `client/`: The Frontend Application
+- `server/`: The Backend API Server
+
+## Technology Stack
+
+### Frontend (`client` workspace)
+- **Framework**: Vue 3 (Composition API default)
+- **Tooling**: Vite
+- **UI Component Library**: Ant Design Vue
+- **State Management**: Pinia
+- **Routing**: Vue Router
+
+### Backend (`server` workspace)
+- **Framework**: Node.js with Express
+- **Database**: SQLite3 (File-based database `server/examwise.sqlite`)
+- **Core Integrations**:
+  - `multer`: Handling `multipart/form-data` image uploads.
+  - `@google/generative-ai`: Utilizing Gemini models (`gemini-2.5-flash-lite`) to parse questions and extract bilingual data.
+  - `google-translate-api-next`: Fallback translation integration.
+
+## Core Workflows
+1. **AI Parsing**: Images are uploaded from the frontend, securely streamed through multer to the Gemini SDK backend. The AI extracts a strictly formatted JSON array covering `{type, category, question_en, question_ko, options, answer, explanation, keywords}`.
+2. **Dynamic UI Rendering**: Form data translates `options` into objects `[{en: "English", ko: "Korean"}]` which are dynamically rendered via `v-for`.
+3. **Soft Deletion**: All question rows use an `is_deleted` INTEGER flag (0 = active, 1 = deleted) to prevent historical data loss.
+
+## Development Commands
+From the Root Directory (`/`):
+- Start both frontend and backend concurrently: `npm run dev`
+- Install dependencies for all workspaces: `npm install`

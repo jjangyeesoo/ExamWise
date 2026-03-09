@@ -1,0 +1,21 @@
+# ExamWise Frontend (.cursorrules)
+
+## Environment
+- Vue 3 (Composition API)
+- Vite
+- Ant Design Vue
+- Pinia
+
+## Coding Conventions
+- **Composition API**: Use standard `<script setup>` syntax for all components.
+- **Ant Design Vue**: Always depend on `<a-button>`, `<a-table>`, `<a-upload-dragger>`, and dynamic `<a-form-item>` objects instead of building plain HTML inputs.
+- **State Management**: Data fetching, caching, and domain logic (Questions, Deletion Arrays) must be encapsulated inside `client/src/stores/question.js` via Pinia.
+- **Icon Imports**: Use `@ant-design/icons-vue`. Avoid `@ant-design-vue/icons-vue` as it disrupts Rollup Vite builds.
+
+### Vue Form Validation
+- Standard `isMultiple` computed logic switches `<a-radio-group>` vs `<a-checkbox-group>`. Ensure arrays validate between 2~3 answers max if MULTIPLE.
+- **Bilingual Options Mapping**: Options should always strictly be arrays of objects containing `{en: "", ko: ""}` forms, matched safely onto A-Z alpha char indices (`char[idx]`).
+
+### Styling
+- Components should ideally be scoped by utilizing `<style scoped>`.
+- Lean heavily onto standard Ant Design colors (`primary`, `dashed`, `danger`) instead of writing manual CSS overrides.

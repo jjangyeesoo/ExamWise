@@ -1,0 +1,27 @@
+# ExamWise Backend (.cursorrules)
+
+## Environment
+- Node.js (v18+)
+- Express
+- SQLite3
+- Gemini AI (`@google/generative-ai`)
+
+## Coding Conventions
+
+### Database (SQLite)
+- **Soft Deletion Protocol**: NEVER hard delete rows. Always use `UPDATE questions SET is_deleted = 1` for removals.
+- **Data Types**: JSON objects and arrays (e.g., `options`, `answer`, `keywords`) are stored as `TEXT` in SQLite. Use `JSON.stringify()` on INSERT/UPDATE, and parse it back to an object/array on GET using a try-catch block for safety.
+
+### AI Integration
+- **Gemini API**: Use the `gemini-2.5-flash-lite` model for default prompt-based extractions.
+- **Handling Images**: Always validate mime types before piping buffers to the native `inlineData` structure for Gemini (`image/jpeg`, `image/png`, etc.).
+- **Rate Limits (429 Error)**: Wrap AI generative code in robust try-catch blocks. If a 429 quota failure occurs, respond with a clean `500`/`429` status indicating to the frontend that a brief pause (e.g., 30s-1m) is necessary.
+
+### Project Structure Strategy
+- `src/index.js`: Main entry point configuring Express, CORS, and middleware.
+- `src/routes/`: Express modular router objects.
+- `src/config/db.js`: Establish singleton SQLite DB instance.
+- `src/db/`: Contains `schema.sql` defining correct data shapes (`is_deleted`, `keywords` etc.).
+
+### Import Format
+- Ensure all relative local package imports append `.js` directly to paths due to ESM (`"type": "module"`).
