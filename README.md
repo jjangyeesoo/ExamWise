@@ -1,54 +1,88 @@
-# ExamWise
+# ExamWise - PMP Exam Bank with Gemini AI
 
-ExamWise is a web application designed for smart exam preparation.
+ExamWise is an intelligent, bilingual Question Bank application specifically tailored for PMP (Project Management Professional) exam preparation. It leverages the power of Google's Gemini AI to automatically parse, translate, and structure complex exam questions from uploaded images.
 
-This project uses a monorepo setup to manage both the backend API and the frontend client within a single repository using npm workspaces.
+## 🚀 Features
 
-## Tech Stack
-*   **Backend (`/server`)**: Node.js, Express, SQLite
-*   **Frontend (`/client`)**: Vue 3, Vite, Vue Router
+- **AI Image Parsing**: Upload a screenshot of a PMP question, and Gemini AI will automatically extract the question, options, answers, and even generate a detailed explanation.
+- **Bilingual Support**: Automatically translates English questions and options into Korean for better comprehension.
+- **Smart Data Structuring**: Extracts key project management keywords and formats options dynamically.
+- **Interactive Question List**: View, filter, and manage questions with an expandable Ant Design Vue table view.
+- **Soft Deletion**: Safely bulk remove questions from the active view without permanently deleting historical data.
 
-## Directory Structure
-```text
-ExamWise/
-├── package.json          # Workspace root, manages npm workspaces
-├── server/               # Express Backend
-│   ├── package.json      # Backend dependencies (express, sqlite3, etc.)
-│   ├── src/
-│   │   ├── config/       # Db configuration (SQLite connection)
-│   │   ├── controllers/  # Route handlers and business logic
-│   │   ├── models/       # Data models and database queries
-│   │   ├── routes/       # Express API routes definition
-│   │   └── index.js      # Main entry point for backend
-└── client/               # Vue 3 Frontend
-    ├── package.json      # Frontend dependencies (vue, vue-router, vite)
-    ├── vite.config.js    # Vite configuration & dev server proxy
-    ├── index.html        # Main HTML file
-    └── src/
-        ├── App.vue       # Root Vue component
-        ├── main.js       # Vue application initialization
-        ├── components/   # Reusable Vue components
-        ├── views/        # Page-level Vue components
-        └── router/       # Vue Router configuration
-```
+## 🛠️ Technology Stack
 
-## Getting Started
+### Frontend
+- **Vue 3** (Composition API)
+- **Vite** (Next Generation Frontend Tooling)
+- **Ant Design Vue** (Premium UI Component Library)
+- **Pinia** (State Management)
+- **Vue Router** (Client-side Routing)
+
+### Backend
+- **Node.js & Express** (Robust Backend Framework)
+- **SQLite3** (Lightweight, File-based Relational Database)
+- **Multer** (Multipart/form-data middleware for image uploads)
+- **Google Generative AI SDK** (`gemini-2.5-flash-lite` for cost-effective, high-performance image analysis)
+
+## ⚙️ Getting Started
 
 ### Prerequisites
-*   [Node.js](https://nodejs.org/) (v22.15.0 recommended)
+- Node.js (v18 or higher recommended)
+- npm or yarn
 
-### Installation
-Run the following command from the root directory to install dependencies for both the `server` and `client` workspaces:
+### 1. Clone the repository
+```bash
+git clone https://github.com/jjangyeesoo/ExamWise.git
+cd ExamWise
+```
 
+### 2. Install Dependencies
+This project uses npm workspaces. You can install all dependencies for both the frontend and backend efficiently from the root directory:
 ```bash
 npm install
 ```
 
-### Running the Application (Development)
-To start both the backend server and the frontend client concurrently, run from the root directory:
+### 3. Environment Configuration (⚠️ IMPORTANT)
+You must configure your environment variables for the Gemini AI integration to work. 
 
+1. Navigate to the `server` directory.
+2. Create a new file named `.env`.
+3. Add your Google Gemini API key to the new file:
+
+```env
+# server/.env
+GEMINI_API_KEY=your_actual_api_key_here
+PORT=3000
+```
+*(You can get your free API key from [Google AI Studio](https://aistudio.google.com/))*
+
+### 4. Run the Application
+Start both the backend server and the frontend development server concurrently from the root directory with a single command:
 ```bash
 npm run dev
 ```
 
-The frontend will be available at `http://localhost:5173` and the backend API at `http://localhost:3000/api`. The Vite dev server proxies API requests to the Express backend.
+- **Frontend Application**: `http://localhost:5173`
+- **Backend API Server**: `http://localhost:3000`
+
+## 📂 Project Structure
+
+```text
+ExamWise/
+├── package.json          # Workspace Root Configuration
+├── server/               # Express Backend
+│   ├── src/
+│   │   ├── config/       # SQLite DB Connection
+│   │   ├── db/           # Schema definitions
+│   │   └── routes/       # API endpoints (Questions, AI, Translation)
+│   ├── .env              # Environment Variables (Create this!)
+│   └── package.json
+└── client/               # Vue 3 Frontend
+    ├── src/
+    │   ├── stores/       # Pinia State Management
+    │   ├── views/        # Page Components (ListView, CreateView)
+    │   ├── App.vue
+    │   └── main.js
+    └── package.json
+```
