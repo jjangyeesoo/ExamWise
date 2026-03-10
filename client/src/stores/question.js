@@ -35,6 +35,26 @@ export const useQuestionStore = defineStore('question', {
             } finally {
                 this.loading = false;
             }
+        },
+        async toggleBookmark(id, currentStatus) {
+            this.loading = true;
+            this.error = null;
+            try {
+                const newStatus = currentStatus ? 0 : 1;
+                await axios.patch(`/api/questions/${id}/bookmark`, { is_bookmarked: newStatus });
+                
+                // Update local state instantly
+                const questionIndex = this.questions.findIndex(q => q.id === id);
+                if (questionIndex !== -1) {
+                    this.questions[questionIndex].is_bookmarked = newStatus;
+                }
+            } catch (err) {
+                console.error('Failed to toggle bookmark:', err);
+                this.error = '북마크 상태를 변경하지 못했습니다.';
+                throw err;
+            } finally {
+                this.loading = false;
+            }
         }
     }
 });

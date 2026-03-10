@@ -34,3 +34,34 @@ This project is set up as an npm monorepo directly containing two main workspace
 From the Root Directory (`/`):
 - Start both frontend and backend concurrently: `npm run dev`
 - Install dependencies for all workspaces: `npm install`
+
+## Development Rules & Guidelines
+
+### 🧩 이벤트 관리 (Event Management)
+- `window.addEventListener` 등 전역 이벤트 리스너를 등록할 경우, **반드시 `onUnmounted` 훅에서 `removeEventListener`**로 제거하여 메모리 누수를 방지한다.
+```js
+// ✅ 올바른 패턴
+onMounted(() => window.addEventListener('keydown', handler));
+onUnmounted(() => window.removeEventListener('keydown', handler));
+```
+
+### 🖼️ UI 패턴 (UI Patterns)
+- **대조형 레이아웃** (예: 영어/한국어 이중 화면): Ant Design Vue의 **Grid 시스템** (`<a-row>`, `<a-col>`)을 사용하여 반응형 레이아웃을 유지한다.
+- **빈 상태(Empty State)**: 목록이나 필터 결과가 0개일 경우 `<a-empty>`에 맥락에 맞는 커스텀 메시지를 제공한다.
+- **키보드 단축키 버튼**: 단축키와 연결된 버튼에는 해당 키를 레이블에 병기한다. (예: `정답 확인 (Space)`)
+- 단축키 이벤트 처리 시 `INPUT`, `TEXTAREA`에 포커스가 있으면 단축키가 동작하지 않도록 예외 처리를 포함한다.
+
+### 🔄 데이터 처리 (Data Handling)
+- **상태 동기화**: 북마크/삭제 등 상태 변경 API 호출 후에는 Pinia 스토어의 로컬 데이터도 즉시 업데이트하여, UI가 추가 `GET` 요청 없이 최신 상태를 반영하도록 한다 (Optimistic UI).
+- **필터링/정렬**은 성능과 단순성을 위해 **클라이언트 사이드**에서 처리한다 (`computed` 속성 활용).
+- **검색 입력**에는 **400ms 디바운싱**을 적용한다.
+- **학습 세션 리스트 (`studyQuestions`)**: 학습 도중 북마크를 해제해도 현재 세션의 문제 리스트는 즉시 변경하지 않는다. 필터 전환 또는 재진입 시에만 갱신한다.
+
+### 🤖 AI 모델 설정 (AI Model Configuration)
+- **기본 모델**: `gemini-2.0-flash`를 기본으로 사용한다. (비용 효율적이며 이미지 분석 성능이 검증됨)
+- **API 버전**: Google Generative AI SDK 호출 시 `apiVersion: 'v1'`을 명시한다.
+
+### 🗄️ DB 스키마 및 API 규칙 (Database & API Rules)
+- **소프트 삭제**: `is_deleted = 1`로 마킹하며, 조회 쿼리에는 항상 `WHERE is_deleted = 0` 조건을 포함한다.
+- **JSON 배열 저장**: `options` 및 `answer`는 SQLite에 JSON 문자열로 저장하고, API 응답 시 `JSON.parse()`로 변환하여 반환한다.
+- **문제 번호 (`number`)**: POST 시 자동 계산 (`MAX(number) + 1`). 사람이 읽는 식별자이므로 내부 `id`와 구분한다.

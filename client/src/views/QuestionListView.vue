@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, computed } from 'vue';
+import { onMounted, ref, computed, watch } from 'vue';
 import { useQuestionStore } from '../stores/question.js';
 import { message, Modal } from 'ant-design-vue';
 import { ExclamationCircleOutlined } from '@ant-design/icons-vue';
@@ -10,8 +10,89 @@ const questionStore = useQuestionStore();
 // Selection state
 const selectedRowKeys = ref([]);
 
+// Filter & Sort state
+const searchQuery = ref('');
+const debouncedSearchQuery = ref('');
+const selectedCategory = ref(null);
+const sortOrder = ref('numberAsc'); // 'numberAsc', 'numberDesc', 'latest', 'oldest'
+const showOnlyBookmarked = ref(false);
+
+// Debounce search query
+let searchTimeout = null;
+watch(searchQuery, (newValue) => {
+    if (searchTimeout) clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        debouncedSearchQuery.value = newValue;
+    }, 400); // 400ms debounce
+});
+
+const uniqueCategories = computed(() => {
+    if (!questionStore.questions) return [];
+    const categories = questionStore.questions.map(q => q.category).filter(Boolean);
+    return [...new Set(categories)].sort();
+});
+
+const filteredQuestions = computed(() => {
+    if (!questionStore.questions) return [];
+    
+    let result = [...questionStore.questions];
+    
+    // 1. Filter by Category
+    if (selectedCategory.value) {
+        result = result.filter(q => q.category === selectedCategory.value);
+    }
+    
+    // 2. Filter by Search Query
+    if (debouncedSearchQuery.value) {
+        const lowerQ = debouncedSearchQuery.value.toLowerCase();
+        result = result.filter(q => {
+            const matchEn = q.question_en && q.question_en.toLowerCase().includes(lowerQ);
+            const matchKo = q.question_ko && q.question_ko.toLowerCase().includes(lowerQ);
+            
+            // Check keywords (array of keywords)
+            let matchKeywords = false;
+            if (q.keywords && Array.isArray(q.keywords)) {
+                 matchKeywords = q.keywords.some(k => k.toLowerCase().includes(lowerQ));
+            } else if (typeof q.keywords === 'string') {
+                 matchKeywords = q.keywords.toLowerCase().includes(lowerQ);
+            }
+            
+            return matchEn || matchKo || matchKeywords;
+        });
+    }
+    
+    // 3. Filter by Bookmark Only Check
+    if (showOnlyBookmarked.value) {
+        result = result.filter(q => q.is_bookmarked === 1);
+    }
+    
+    // 4. Sort
+    result.sort((a, b) => {
+        if (sortOrder.value === 'numberAsc') {
+            return (a.number || 0) - (b.number || 0);
+        } else if (sortOrder.value === 'numberDesc') {
+            return (b.number || 0) - (a.number || 0);
+        } else if (sortOrder.value === 'latest') {
+            return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+        } else if (sortOrder.value === 'oldest') {
+            return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+        }
+        return 0;
+    });
+    
+    return result;
+});
+
 const onSelectChange = (keys) => {
   selectedRowKeys.value = keys;
+};
+
+const handleResetFilters = () => {
+    searchQuery.value = '';
+    debouncedSearchQuery.value = '';
+    selectedCategory.value = null;
+    sortOrder.value = 'numberAsc';
+    showOnlyBookmarked.value = false;
 };
 
 const hasSelected = computed(() => selectedRowKeys.value.length > 0);
@@ -45,6 +126,12 @@ const columns = [
     width: 60,
   },
   {
+    title: '번호',
+    dataIndex: 'number',
+    key: 'number',
+    width: 90,
+  },
+  {
     title: '유형',
     dataIndex: 'type',
     key: 'type',
@@ -61,6 +148,11 @@ const columns = [
     dataIndex: 'question_ko',
     key: 'question_ko',
     ellipsis: true, // Truncate long text
+  },
+  {
+    title: '작업',
+    key: 'action',
+    width: 80,
   }
 ];
 
@@ -91,7 +183,7 @@ onMounted(() => {
 
 <template>
   <div class="question-list-container">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
       <h2>문제 목록</h2>
       <div>
         <a-button 
@@ -103,13 +195,59 @@ onMounted(() => {
         >
           {{ selectedRowKeys.length }}개 선택 삭제
         </a-button>
+        <a-button @click="$router.push('/study')" style="margin-right: 12px;">공부 시작</a-button>
         <a-button type="primary" @click="$router.push('/create')">새 문제 등록</a-button>
       </div>
+    </div>
+    
+    <!-- Filter and Search Bar -->
+    <div style="background: #fbfbfb; padding: 16px; border-radius: 8px; margin-bottom: 16px; display: flex; gap: 16px; flex-wrap: wrap; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+        <div style="flex: 1; min-width: 200px;">
+           <div style="margin-bottom: 4px; font-size: 12px; color: #666;">검색어 (지문/키워드)</div>
+           <a-input-search
+              v-model:value="searchQuery"
+              placeholder="검색어를 입력하세요..."
+              allow-clear
+              style="width: 100%"
+            />
+        </div>
+        <div style="width: 220px;">
+           <div style="margin-bottom: 4px; font-size: 12px; color: #666;">카테고리 필터</div>
+           <a-select
+              v-model:value="selectedCategory"
+              style="width: 100%"
+              allow-clear
+              placeholder="전체 도메인 보기"
+            >
+              <a-select-option :value="null">전체 도메인 (All)</a-select-option>
+              <a-select-option v-for="cat in uniqueCategories" :key="cat" :value="cat">
+                  {{ cat }}
+              </a-select-option>
+            </a-select>
+        </div>
+        <div style="width: 180px;">
+           <div style="margin-bottom: 4px; font-size: 12px; color: #666;">정렬 기준</div>
+           <a-select v-model:value="sortOrder" style="width: 100%">
+              <a-select-option value="numberAsc">문제 번호 오름차순</a-select-option>
+              <a-select-option value="numberDesc">문제 번호 내림차순</a-select-option>
+              <a-select-option value="latest">최신 등록순</a-select-option>
+              <a-select-option value="oldest">오래된 등록순</a-select-option>
+            </a-select>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-right: 8px;">
+            <div style="margin-bottom: 4px; font-size: 12px; color: #666;">북마크만 보기</div>
+            <a-switch v-model:checked="showOnlyBookmarked" checked-children="ON" un-checked-children="OFF" />
+        </div>
+        <div style="display: flex; align-items: flex-end;">
+            <a-button type="primary" @click="handleResetFilters" title="초기화">
+                Reset
+            </a-button>
+        </div>
     </div>
 
     <a-table 
       :rowSelection="{ selectedRowKeys: selectedRowKeys, onChange: onSelectChange }"
-      :dataSource="questionStore.questions" 
+      :dataSource="filteredQuestions" 
       :columns="columns"  
       :loading="questionStore.loading"
       rowKey="id"
@@ -117,10 +255,16 @@ onMounted(() => {
     >
       <!-- Custom rendering for columns -->
       <template #bodyCell="{ column, record }">
-        <template v-if="column.key === 'type'">
+        <template v-if="column.key === 'number'">
+          문제 {{ record.number || '-' }}
+        </template>
+        <template v-else-if="column.key === 'type'">
           <a-tag :color="record.type === 'SINGLE' ? 'blue' : 'purple'">
             {{ record.type === 'SINGLE' ? '단일 선택' : '다중 선택' }}
           </a-tag>
+        </template>
+        <template v-else-if="column.key === 'action'">
+          <a-button type="link" size="small" @click="$router.push(`/edit/${record.id}`)">수정</a-button>
         </template>
       </template>
 

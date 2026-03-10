@@ -1,14 +1,19 @@
 <script setup>
-import { reactive, ref, computed } from 'vue';
-import { useRouter } from 'vue-router';
+import { reactive, ref, computed, onMounted } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import { PlusOutlined, MinusCircleOutlined, InboxOutlined } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 import axios from 'axios';
 
 const router = useRouter();
+const route = useRoute();
 const formRef = ref();
 
+const isEditMode = computed(() => !!route.params.id);
+
 const formState = reactive({
+  id: null,
+  number: null,
   type: 'SINGLE',
   category: '',
   question_en: '',
@@ -36,6 +41,21 @@ const handleImageUpload = async (info) => {
     const data = response.data;
     message.success('이미지 분석 성공!');
     
+    // Auto-populate Max Number + 1 if creating a new question
+    if (!isEditMode.value && !formState.number) {
+        try {
+            const qRes = await axios.get('/api/questions');
+            if (qRes.data && qRes.data.length > 0) {
+                const maxNum = Math.max(...qRes.data.map(q => q.number || 0));
+                formState.number = maxNum + 1;
+            } else {
+                formState.number = 1;
+            }
+        } catch (numErr) {
+            console.error('Failed to auto-populate number:', numErr);
+        }
+    }
+
     // Populate form
     if (data.type) formState.type = data.type;
     if (data.category) formState.category = data.category;
@@ -108,28 +128,7 @@ const removeOption = (index) => {
   }
 };
 
-// AI Translate logic
-const translating = ref(false);
-const handleTranslate = async () => {
-  if (!formState.question_en) {
-    message.warning('번역할 영어 지문을 먼저 입력해주세요.');
-    return;
-  }
-  
-  translating.value = true;
-  try {
-    const response = await axios.post('/api/translate', { text: formState.question_en });
-    formState.question_ko = response.data.translation;
-    message.success('번역이 완료되었습니다.');
-  } catch (error) {
-    console.error('Translate Error:', error);
-    // Fallback if backend translation fails during mock
-    formState.question_ko = error.response?.data?.mock || '[번역 실패]';
-    message.error('번역 중 오류가 발생했습니다.');
-  } finally {
-    translating.value = false;
-  }
-};
+
 
 // Form submission
 const onFinish = async (values) => {
@@ -149,6 +148,7 @@ const onFinish = async (values) => {
       : [formattedOptions[parseInt(formState.answer[0])].en];
 
     const payload = {
+      number: formState.number || null,
       type: formState.type,
       category: formState.category,
       question_en: formState.question_en,
@@ -159,12 +159,18 @@ const onFinish = async (values) => {
       keywords: formState.keywords ? formState.keywords.split(',').map(s => s.trim()) : []
     };
 
-    await axios.post('/api/questions', payload);
-    message.success('문제 등록이 성공적으로 완료되었습니다.');
+    if (isEditMode.value) {
+      await axios.put(`/api/questions/${formState.id}`, payload);
+      message.success('문제가 성공적으로 수정되었습니다.');
+    } else {
+      await axios.post('/api/questions', payload);
+      message.success('문제 등록이 성공적으로 완료되었습니다.');
+    }
+    
     router.push('/');
   } catch (error) {
     console.error('Save Error:', error);
-    message.error('문제 등록에 실패했습니다.');
+    message.error(isEditMode.value ? '문제 수정에 실패했습니다.' : '문제 등록에 실패했습니다.');
   }
 };
 
@@ -177,12 +183,58 @@ const onFinishFailed = (errorInfo) => {
 const handleTypeChange = () => {
     formState.answer = [];
 };
+
+// Fetch data if Edit Mode
+onMounted(async () => {
+  if (isEditMode.value) {
+    try {
+      // In a real app we might fetch just the one by ID, but since our store or API might only have get-all:
+      const response = await axios.get('/api/questions');
+      const questionId = parseInt(route.params.id);
+      const question = response.data.find(q => q.id === questionId);
+      
+      if (question) {
+        formState.id = question.id;
+        formState.number = question.number;
+        formState.type = question.type;
+        formState.category = question.category;
+        formState.question_en = question.question_en;
+        formState.question_ko = question.question_ko;
+        formState.explanation = question.explanation;
+        formState.keywords = (question.keywords || []).join(', ');
+        
+        // Setup options
+        if (question.options) {
+            formState.options = question.options.map(opt => ({ en: opt.en || '', ko: opt.ko || '' }));
+            // Add padding if less than 2
+            while(formState.options.length < 2) {
+                formState.options.push({ en: '', ko: ''});
+            }
+        }
+        
+        // Setup Answers based on mapped indices
+        if (question.answer && Array.isArray(question.answer)) {
+             formState.answer = question.answer.map(ansStr => {
+                 const idx = formState.options.findIndex(o => o.en === ansStr);
+                 return idx !== -1 ? idx.toString() : '0';
+             });
+        }
+      } else {
+          message.error('문제를 찾을 수 없습니다.');
+          router.push('/');
+      }
+    } catch (err) {
+      console.error('Failed to load question details:', err);
+      message.error('문제 정보를 불러오는데 실패했습니다.');
+    }
+  }
+});
 </script>
 
 <template>
   <div class="question-create-container">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-      <h2>새 문제 등록</h2>
+      <h2>{{ isEditMode ? '문제 수정' : '새 문제 등록' }}</h2>
     </div>
 
     <div style="margin-bottom: 24px;">
@@ -213,6 +265,10 @@ const handleTypeChange = () => {
       @finish="onFinish"
       @finishFailed="onFinishFailed"
     >
+      <a-form-item label="문제 번호" name="number" help="입력하지 않으면 가장 마지막 번호 다음으로 자동 지정됩니다.">
+        <a-input-number v-model:value="formState.number" :min="1" style="width: 100%" placeholder="예: 12" />
+      </a-form-item>
+
       <a-form-item label="문제 유형" name="type" :rules="[{ required: true, message: '문제 유형을 선택해주세요!' }]">
         <a-radio-group v-model:value="formState.type" @change="handleTypeChange">
           <a-radio value="SINGLE">단일 선택형 (정답 1개)</a-radio>
@@ -226,11 +282,6 @@ const handleTypeChange = () => {
 
       <a-form-item label="영어 지문" name="question_en" :rules="[{ required: true, message: '영어 지문을 입력해주세요!' }]">
         <a-textarea v-model:value="formState.question_en" :rows="4" />
-        <div style="margin-top: 8px; text-align: right;">
-           <a-button type="dashed" @click="handleTranslate" :loading="translating">
-             AI 번역
-           </a-button>
-        </div>
       </a-form-item>
 
       <a-form-item label="한국어 지문" name="question_ko" :rules="[{ required: true, message: '한국어 지문을 입력해주세요!' }]">

@@ -10,8 +10,18 @@ const router = createRouter({
         },
         {
             path: '/create',
-            name: 'createOption',
+            name: 'createQuestion',
             component: () => import('../views/QuestionCreateView.vue')
+        },
+        {
+            path: '/edit/:id',
+            name: 'editQuestion',
+            component: () => import('../views/QuestionCreateView.vue')
+        },
+        {
+            path: '/study',
+            name: 'studyMode',
+            component: () => import('../views/StudyView.vue')
         }
     ]
 });

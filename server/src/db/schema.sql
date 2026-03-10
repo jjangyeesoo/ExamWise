@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
 -- Create PMP questions table
 CREATE TABLE IF NOT EXISTS questions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  number INTEGER, -- Follows the max numbering sequence
   type TEXT NOT NULL, -- 'SINGLE' or 'MULTIPLE'
   category TEXT NOT NULL,
   question_en TEXT NOT NULL,
@@ -20,5 +21,6 @@ CREATE TABLE IF NOT EXISTS questions (
   explanation TEXT,
   keywords TEXT, -- Stored as JSON array: ["keyword1", "keyword2"]
   is_deleted INTEGER DEFAULT 0, -- Soft delete flag (0=active, 1=deleted)
+  is_bookmarked INTEGER DEFAULT 0, -- Bookmark flag (0=normal, 1=bookmarked)
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );

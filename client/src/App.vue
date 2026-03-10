@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { RouterView, useRouter } from 'vue-router';
-import { UnorderedListOutlined, DashboardOutlined, PlusOutlined } from '@ant-design/icons-vue';
+import { UnorderedListOutlined, DashboardOutlined, PlusOutlined, ReadOutlined } from '@ant-design/icons-vue';
 
 const router = useRouter();
 const collapsed = ref(false);
@@ -12,6 +12,8 @@ const navigateTo = ({ key }) => {
     router.push('/');
   } else if (key === 'create') {
     router.push('/create');
+  } else if (key === 'study') {
+    router.push('/study');
   }
 };
 </script>
@@ -36,6 +38,10 @@ const navigateTo = ({ key }) => {
         <a-menu-item key="questions">
           <unordered-list-outlined />
           <span>문제 목록</span>
+        </a-menu-item>
+        <a-menu-item key="study">
+          <read-outlined />
+          <span>공부 시작</span>
         </a-menu-item>
         <a-menu-item key="create">
           <plus-outlined />

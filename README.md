@@ -5,8 +5,11 @@ ExamWise is an intelligent, bilingual Question Bank application specifically tai
 ## 🚀 Features
 
 - **AI Image Parsing**: Upload a screenshot of a PMP question, and Gemini AI will automatically extract the question, options, answers, and even generate a detailed explanation.
-- **Bilingual Support**: Automatically translates English questions and options into Korean for better comprehension.
-- **Smart Data Structuring**: Extracts key project management keywords and formats options dynamically.
+- **📖 몰입형 공부 모드 (Study Mode)**: 영어와 한국어 지문을 대조하며 학습할 수 있는 전용 뷰어와 진행률 표시 기능 추가.
+- **🔖 스마트 북마크 (오답 노트)**: 중요하거나 헷갈리는 문제를 별표로 표시하고, 따로 모아볼 수 있는 필터링 기능 구현.
+- **🔍 고도화된 검색 및 필터**: PMP 도메인(People, Process, Business)별 필터링과 실시간 텍스트 검색 기능.
+- **⌨️ 키보드 단축키 지원**: 마우스 없이도 Space(정답 확인), 방향키(이전/다음 문제)로 빠르게 학습 가능한 환경 구축.
+- **🗄️ 스키마 확장**: 문제 번호(number)와 북마크 상태(is_bookmarked) 관리를 위한 SQLite 테이블 고도화.
 - **Interactive Question List**: View, filter, and manage questions with an expandable Ant Design Vue table view.
 - **Soft Deletion**: Safely bulk remove questions from the active view without permanently deleting historical data.
 

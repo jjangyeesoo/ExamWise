@@ -14,7 +14,7 @@ router.get('/', (req, res) => {
 
 // GET /api/questions - Fetch all questions (exclude soft deleted)
 router.get('/questions', (req, res) => {
-    const query = 'SELECT * FROM questions WHERE is_deleted = 0 ORDER BY created_at DESC';
+    const query = 'SELECT * FROM questions WHERE is_deleted = 0 ORDER BY number ASC';
 
     db.all(query, [], (err, rows) => {
         if (err) {
@@ -59,20 +59,78 @@ router.get('/questions', (req, res) => {
 
 // POST /api/questions - Create a new question
 router.post('/questions', (req, res) => {
-    const { type, category, question_en, question_ko, options, answer, explanation, keywords } = req.body;
+    const { type, category, question_en, question_ko, options, answer, explanation, keywords, number } = req.body;
 
     // Validate basic required fields
     if (!type || !category || !question_en || !options || !answer) {
         return res.status(400).json({ error: 'Missing required question fields.' });
     }
 
-    const query = `
-    INSERT INTO questions (type, category, question_en, question_ko, options, answer, explanation, keywords)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `;
+    const insertQuestion = (numberVal) => {
+        const query = `
+            INSERT INTO questions (number, type, category, question_en, question_ko, options, answer, explanation, keywords)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `;
 
-    // JSON stringify the options and answer arrays for SQLite storage
+        const params = [
+            numberVal,
+            type,
+            category,
+            question_en,
+            question_ko || '',
+            JSON.stringify(options),
+            JSON.stringify(answer),
+            explanation || '',
+            JSON.stringify(keywords || [])
+        ];
+
+        db.run(query, params, function (err) {
+            if (err) {
+                console.error('Error creating question:', err.message);
+                return res.status(500).json({ error: 'Failed to create question' });
+            }
+
+            res.status(201).json({
+                message: 'Question created successfully',
+                id: this.lastID,
+                number: numberVal
+            });
+        });
+    };
+
+    if (number !== undefined && number !== null) {
+        insertQuestion(number);
+    } else {
+        // Calculate max number
+        db.get("SELECT MAX(number) as maxNum FROM questions", [], (err, row) => {
+            if (err) {
+                console.error("Error fetching max number:", err.message);
+                return res.status(500).json({ error: "Failed to calculate question number" });
+            }
+            const nextNum = row && row.maxNum ? row.maxNum + 1 : 1;
+            insertQuestion(nextNum);
+        });
+    }
+});
+
+// PUT /api/questions/:id - Update an existing question
+router.put('/questions/:id', (req, res) => {
+    const { id } = req.params;
+    const { type, category, question_en, question_ko, options, answer, explanation, keywords, number } = req.body;
+
+    if (!type || !category || !question_en || !options || !answer) {
+        return res.status(400).json({ error: 'Missing required question fields for update.' });
+    }
+
+    const query = `
+        UPDATE questions 
+        SET number = ?, type = ?, category = ?, question_en = ?, question_ko = ?, 
+            options = ?, answer = ?, explanation = ?, keywords = ?
+        WHERE id = ?
+    `;
+
     const params = [
+        number || null,
         type,
         category,
         question_en,
@@ -80,19 +138,45 @@ router.post('/questions', (req, res) => {
         JSON.stringify(options),
         JSON.stringify(answer),
         explanation || '',
-        JSON.stringify(keywords || [])
+        JSON.stringify(keywords || []),
+        id
     ];
 
     db.run(query, params, function (err) {
         if (err) {
-            console.error('Error creating question:', err.message);
-            return res.status(500).json({ error: 'Failed to create question' });
+            console.error('Error updating question:', err.message);
+            return res.status(500).json({ error: 'Failed to update question' });
+        }
+        
+        if (this.changes === 0) {
+            return res.status(404).json({ error: 'Question not found' });
         }
 
-        res.status(201).json({
-            message: 'Question created successfully',
-            id: this.lastID
-        });
+        res.json({ message: 'Question updated successfully', id });
+    });
+});
+
+// PATCH /api/questions/:id/bookmark - Toggle bookmark status
+router.patch('/questions/:id/bookmark', (req, res) => {
+    const { id } = req.params;
+    const { is_bookmarked } = req.body;
+
+    if (is_bookmarked === undefined) {
+        return res.status(400).json({ error: 'Missing is_bookmarked status.' });
+    }
+
+    const query = 'UPDATE questions SET is_bookmarked = ? WHERE id = ?';
+    db.run(query, [is_bookmarked ? 1 : 0, id], function (err) {
+        if (err) {
+            console.error('Error updating bookmark:', err.message);
+            return res.status(500).json({ error: 'Failed to update bookmark status' });
+        }
+        
+        if (this.changes === 0) {
+            return res.status(404).json({ error: 'Question not found' });
+        }
+
+        res.json({ message: 'Bookmark status updated successfully', id, is_bookmarked });
     });
 });
 
