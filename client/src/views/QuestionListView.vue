@@ -9,6 +9,7 @@ const questionStore = useQuestionStore();
 
 // Selection state
 const selectedRowKeys = ref([]);
+const PMP_DOMAINS = ['People', 'Process', 'Business Environment'];
 
 // Filter & Sort state
 const searchQuery = ref('');
@@ -220,9 +221,16 @@ onMounted(() => {
               placeholder="전체 도메인 보기"
             >
               <a-select-option :value="null">전체 도메인 (All)</a-select-option>
-              <a-select-option v-for="cat in uniqueCategories" :key="cat" :value="cat">
-                  {{ cat }}
-              </a-select-option>
+              <a-select-opt-group label="기본 PMP 도메인">
+                <a-select-option v-for="domain in PMP_DOMAINS" :key="domain" :value="domain">
+                  {{ domain }}
+                </a-select-option>
+              </a-select-opt-group>
+              <a-select-opt-group v-if="uniqueCategories.filter(c => !PMP_DOMAINS.includes(c)).length > 0" label="기타 카테고리">
+                <a-select-option v-for="cat in uniqueCategories.filter(c => !PMP_DOMAINS.includes(c))" :key="cat" :value="cat">
+                    {{ cat }}
+                </a-select-option>
+              </a-select-opt-group>
             </a-select>
         </div>
         <div style="width: 180px;">

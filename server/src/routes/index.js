@@ -236,6 +236,7 @@ router.post('/ai/analyze-image', upload.single('image'), async (req, res) => {
 
         const prompt = `이 PMP 문제 이미지를 분석해서 JSON으로 반환해줘. 구조는 {type, category, question_en, question_ko, options, answer, explanation, keywords}여야 해. 
 정답은 배열 형태로 추출하고, 해설(explanation)은 무조건 한국어로 상세하게 작성해줘. 관련 키워드 3개를 포함해줘. 
+category는 PMP의 3대 도메인인 'People', 'Process', 'Business Environment' 중 가장 적절한 하나로 분류해줘.
 type은 'SINGLE' 또는 'MULTIPLE' 중 하나, options는 각 보기의 영어 원문과 한국어 번역을 포함하는 객체의 배열(예: [{"en": "영어 보기", "ko": "한국어 번역 보기"}]), answer는 정답 알파벳/숫자의 배열(예: ["A"] 또는 ["B", "C"]), keywords는 키워드 문자열의 배열이야.
 다른 마크다운 코드블록 백틱이나 설명 없이 순수한 JSON 객체만 반환해.`;
 

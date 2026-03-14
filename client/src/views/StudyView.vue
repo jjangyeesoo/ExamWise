@@ -3,6 +3,7 @@ import { onMounted, onUnmounted, ref, computed, watch } from 'vue';
 import { useQuestionStore } from '../stores/question.js';
 import { useRouter } from 'vue-router';
 import { LeftOutlined, RightOutlined, TranslationOutlined, CheckCircleOutlined, StarOutlined, StarFilled } from '@ant-design/icons-vue';
+import { message } from 'ant-design-vue';
 
 const router = useRouter();
 const questionStore = useQuestionStore();
@@ -21,6 +22,30 @@ const isRightActive = ref(false);
 
 const currentFilter = ref('all');
 const studyQuestions = ref([]);
+const jumpIndex = ref(1); // 1-based index for the input field
+
+const updateJumpIndex = () => {
+    jumpIndex.value = currentIndex.value + 1;
+};
+
+const handleJump = () => {
+    let val = parseInt(jumpIndex.value);
+    if (isNaN(val)) {
+        updateJumpIndex();
+        return;
+    }
+    
+    // Constrain to valid range 1 to totalQuestions
+    if (val < 1 || val > totalQuestions.value) {
+        message.warning(`문제 범위(1~${totalQuestions.value}) 내의 숫자를 입력해주세요.`);
+        updateJumpIndex();
+        return;
+    }
+    
+    currentIndex.value = val - 1;
+    jumpIndex.value = val;
+    resetStates();
+};
 
 const loadStudyQuestions = () => {
     if (currentFilter.value === 'all') {
@@ -34,6 +59,11 @@ const loadStudyQuestions = () => {
 
 watch(currentFilter, () => {
     loadStudyQuestions();
+    updateJumpIndex();
+});
+
+watch(currentIndex, () => {
+    updateJumpIndex();
 });
 
 const currentQuestion = computed(() => {
@@ -167,9 +197,21 @@ onUnmounted(() => {
 
     <!-- Progress Bar -->
     <div v-if="totalQuestions > 0" style="margin-bottom: 24px; background: #fff; padding: 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
             <span>진행률</span>
-            <span>문제 {{ currentIndex + 1 }} / {{ totalQuestions }}</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 12px; color: #8c8c8c;">이동:</span>
+                <a-input-number 
+                    v-model:value="jumpIndex" 
+                    :min="1" 
+                    :max="totalQuestions" 
+                    size="small" 
+                    style="width: 60px" 
+                    @pressEnter="handleJump"
+                    @blur="handleJump"
+                />
+                <span style="margin-left: 4px;">문제 {{ currentIndex + 1 }} / {{ totalQuestions }}</span>
+            </div>
         </div>
         <a-progress :percent="progressPercent" :show-info="false" />
     </div>

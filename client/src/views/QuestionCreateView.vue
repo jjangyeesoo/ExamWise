@@ -9,6 +9,8 @@ const router = useRouter();
 const route = useRoute();
 const formRef = ref();
 
+const PMP_DOMAINS = ['People', 'Process', 'Business Environment'];
+
 const isEditMode = computed(() => !!route.params.id);
 
 const formState = reactive({
@@ -276,8 +278,12 @@ onMounted(async () => {
         </a-radio-group>
       </a-form-item>
 
-      <a-form-item label="카테고리" name="category" :rules="[{ required: true, message: '카테고리를 입력해주세요!' }]">
-        <a-input v-model:value="formState.category" placeholder="예: Integration Management" />
+      <a-form-item label="카테고리" name="category" :rules="[{ required: true, message: '카테고리를 선택해주세요!' }]">
+        <a-select v-model:value="formState.category" placeholder="PMP 도메인을 선택하거나 입력하세요" show-search allow-clear>
+          <a-select-option v-for="domain in PMP_DOMAINS" :key="domain" :value="domain">
+            {{ domain }}
+          </a-select-option>
+        </a-select>
       </a-form-item>
 
       <a-form-item label="영어 지문" name="question_en" :rules="[{ required: true, message: '영어 지문을 입력해주세요!' }]">
